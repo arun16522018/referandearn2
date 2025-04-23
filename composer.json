@@ -2,16 +2,33 @@
     "name": "referandearn2/bot",
     "type": "project",
     "require": {
-        "php": "^8.1",
+        "php": "^8.2",
+        "ext-curl": "*",
+        "ext-json": "*",
         "guzzlehttp/guzzle": "^7.5",
         "vlucas/phpdotenv": "^5.5"
     },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0"
+    },
     "autoload": {
         "psr-4": {
-            "ReferandEarn\\": "src/"
-        }
+            "App\\": "src/"
+        },
+        "files": ["src/helpers.php"]
     },
     "config": {
-        "optimize-autoloader": true
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "chmod -R 755 storage",
+            "php scripts/setup.php"
+        ],
+        "test": "phpunit"
     }
 }
