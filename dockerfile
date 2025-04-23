@@ -1,31 +1,60 @@
 # Use official PHP image with Apache
 FROM php:8.2-apache
 
-# Install required extensions
+# Set environment variables
+ENV APACHE_DOCUMENT_ROOT=/var/www/html \
+    PORT=10000
+
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
-    && docker-php-ext-install pdo pdo_mysql \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libwebp-dev \
+    libfreetype6-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j$(nproc) \
+    pdo \
+    pdo_mysql \
+    mysqli \
+    gd \
+    zip \
+    opcache \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Enable Apache rewrite module
-RUN a2enmod rewrite
+# Enable Apache modules
+RUN a2enmod rewrite headers
 
-# Update Apache to listen on port 10000 (Render requirement)
-RUN sed -i 's/80/10000/' /etc/apache2/ports.conf && \
-    sed -i 's/80/10000/' /etc/apache2/sites-enabled/000-default.conf
+# Configure Apache for Render.com
+RUN { \
+    echo "Listen ${PORT}"; \
+    echo "<VirtualHost *:${PORT}>"; \
+    echo "  ServerAdmin webmaster@localhost"; \
+    echo "  DocumentRoot \${APACHE_DOCUMENT_ROOT}"; \
+    echo "  <Directory \${APACHE_DOCUMENT_ROOT}>"; \
+    echo "    Options Indexes FollowSymLinks"; \
+    echo "    AllowOverride All"; \
+    echo "    Require all granted"; \
+    echo "  </Directory>"; \
+    echo "  ErrorLog \${APACHE_LOG_DIR}/error.log"; \
+    echo "  CustomLog \${APACHE_LOG_DIR}/access.log combined"; \
+    echo "</VirtualHost>"; \
+} > /etc/apache2/sites-available/000-default.conf
 
-# Copy files to container
-COPY . /var/www/html/
+# Copy application files
+COPY --chown=www-data:www-data . ${APACHE_DOCUMENT_ROOT}/
 
 # Set proper permissions
-RUN chown -R www-data:www-data /var/www/html && \
-    chmod 644 /var/www/html/users.json /var/www/html/error.log || true
+RUN chmod -R 755 ${APACHE_DOCUMENT_ROOT} && \
+    chmod 644 ${APACHE_DOCUMENT_ROOT}/users.json ${APACHE_DOCUMENT_ROOT}/error.log || true
 
 # Set working directory
-WORKDIR /var/www/html
+WORKDIR ${APACHE_DOCUMENT_ROOT}
 
-# Expose Render's required port
-EXPOSE 10000
+# Expose the port
+EXPOSE ${PORT}
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s \
+    CMD curl -f http://localhost:${PORT}/ || exit 1
