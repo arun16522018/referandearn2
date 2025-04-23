@@ -1,175 +1,20 @@
 <?php
-// ==============================================
-// Telegram Bot Configuration
-// ==============================================
-define('BOT_TOKEN', getenv('TELEGRAM_BOT_TOKEN') ?: 'YOUR_BOT_TOKEN_HERE');
-define('API_URL', 'https://api.telegram.org/bot'.BOT_TOKEN.'/');
-define('USERS_FILE', _DIR_.'/data/users.json');
-define('ERROR_LOG', _DIR_.'/logs/error.log');
-define('WEBHOOK_URL', 'https://yourdomain.com/bot.php'); // Change to your actual URL
+require _DIR_.'/vendor/autoload.php';
+require _DIR_.'/src/BotCore.php';
 
-// Ensure directories exist
-@mkdir(_DIR_.'/data', 0755, true);
-@mkdir(_DIR_.'/logs', 0755, true);
+use ReferandEarn\BotCore;
 
-// ==============================================
-// Core Bot Functions
-// ==============================================
+// Initialize bot
+$bot = new BotCore([
+    'token' => getenv('TELEGRAM_BOT_TOKEN'),
+    'webhook_url' => getenv('WEBHOOK_URL'),
+    'users_file' => _DIR_.'/data/users.json',
+    'error_log' => _DIR_.'/logs/error.log'
+]);
 
-/**
- * Set up the webhook with Telegram
- */
-function setWebhook() {
-    try {
-        $url = API_URL.'setWebhook?url='.urlencode(WEBHOOK_URL);
-        $response = sendTelegramRequest($url);
-        
-        if ($response['ok']) {
-            logMessage("✅ Webhook set successfully to: ".WEBHOOK_URL);
-            return true;
-        }
-        logError("❌ Webhook setup failed: ".$response['description']);
-        return false;
-    } catch (Exception $e) {
-        logError("Webhook setup exception: ".$e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Remove the webhook
- */
-function clearWebhook() {
-    try {
-        $response = sendTelegramRequest(API_URL.'deleteWebhook');
-        
-        if ($response['ok']) {
-            logMessage("ℹ Webhook removed successfully");
-            return true;
-        }
-        logError("❌ Webhook removal failed: ".$response['description']);
-        return false;
-    } catch (Exception $e) {
-        logError("Webhook removal exception: ".$e->getMessage());
-        return false;
-    }
-}
-
-/**
- * Process incoming updates
- */
-function processUpdate($update) {
-    try {
-        file_put_contents(USERS_FILE, json_encode($update, JSON_PRETTY_PRINT));
-        
-        $message = $update['message'] ?? $update['edited_message'] ?? null;
-        if (!$message) return;
-        
-        $chatId = $message['chat']['id'];
-        $text = $message['text'] ?? '';
-        $userId = $message['from']['id'] ?? 0;
-        
-        // Handle commands
-        switch (trim($text)) {
-            case '/start':
-                sendMessage($chatId, "👋 Welcome! Use /refer to get your referral link");
-                break;
-                
-            case '/refer':
-                $refLink = "https://t.me/".basename(BOT_TOKEN)."?start=$userId";
-                sendMessage($chatId, "Your referral link: $refLink");
-                break;
-                
-            default:
-                if (strpos($text, '/start') === 0 && isset($update['message']['from']['id'])) {
-                    handleReferral($update);
-                }
-                break;
-        }
-    } catch (Exception $e) {
-        logError("Update processing error: ".$e->getMessage());
-    }
-}
-
-/**
- * Handle referral links
- */
-function handleReferral($update) {
-    $referrerId = explode(' ', $update['message']['text'])[1] ?? null;
-    if ($referrerId && is_numeric($referrerId)) {
-        $userId = $update['message']['from']['id'];
-        logMessage("👥 Referral: User $userId came from $referrerId");
-    }
-}
-
-// ==============================================
-// Helper Functions
-// ==============================================
-
-function sendTelegramRequest($url) {
-    $response = file_get_contents($url);
-    return json_decode($response, true);
-}
-
-function sendMessage($chatId, $text) {
-    $url = API_URL.'sendMessage?chat_id='.$chatId.'&text='.urlencode($text);
-    return sendTelegramRequest($url);
-}
-
-function logMessage($message) {
-    file_put_contents(ERROR_LOG, date('[Y-m-d H:i:s] ').$message.PHP_EOL, FILE_APPEND);
-}
-
-function logError($message) {
-    file_put_contents(ERROR_LOG, date('[Y-m-d H:i:s] ERROR: ').$message.PHP_EOL, FILE_APPEND);
-}
-
-// ==============================================
-// Main Execution
-// ==============================================
-
-// Handle webhook request
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $update = json_decode(file_get_contents('php://input'), true);
-    processUpdate($update);
-    exit;
-}
-
-// CLI commands for administration
+// Handle webhook or CLI
 if (php_sapi_name() === 'cli') {
-    $command = $argv[1] ?? null;
-    
-    switch ($command) {
-        case 'set-webhook':
-            echo setWebhook() ? "Webhook set successfully\n" : "Failed to set webhook\n";
-            break;
-            
-        case 'remove-webhook':
-            echo clearWebhook() ? "Webhook removed successfully\n" : "Failed to remove webhook\n";
-            break;
-            
-        case 'test':
-            $testUpdate = [
-                'message' => [
-                    'chat' => ['id' => 12345],
-                    'text' => '/start',
-                    'from' => ['id' => 12345]
-                ]
-            ];
-            processUpdate($testUpdate);
-            echo "Test message processed\n";
-            break;
-            
-        default:
-            echo "Available commands:\n";
-            echo "  set-webhook    - Register webhook URL\n";
-            echo "  remove-webhook - Remove webhook\n";
-            echo "  test           - Send test message\n";
-            break;
-    }
-    exit;
+    $bot->handleCommand($argv[1] ?? null);
+} else {
+    $bot->handleWebhook();
 }
-
-// Default response for browser access
-header('Content-Type: text/plain');
-echo "Telegram Bot is running. Last update: ".date('Y-m-d H:i:s');
