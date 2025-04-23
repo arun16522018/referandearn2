@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - BOT_TOKEN=${BOT_TOKEN}
+    volumes:
+      - ./users.json:/var/www/html/users.json
+      - ./error.log:/var/www/html/error.log
