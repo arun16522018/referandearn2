@@ -1,12 +1,43 @@
-version: '3.8'
+version: "3.8"
 
 services:
   web:
-    build: .
+    image: php:8.2-apache
+    container_name: referandearn2-web
+    restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"  # For HTTPS if needed
     environment:
       - BOT_TOKEN=${BOT_TOKEN}
+      - APACHE_SERVER_NAME=localhost
     volumes:
+      - ./:/var/www/html
       - ./users.json:/var/www/html/users.json
       - ./error.log:/var/www/html/error.log
+      - ./apache-config:/etc/apache2/sites-enabled
+    networks:
+      - referandearn2-net
+
+  db:
+    image: mysql:8.0
+    container_name: referandearn2-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - referandearn2-net
+    ports:
+      - "3306:3306"
+
+networks:
+  referandearn2-net:
+    driver: bridge
+
+volumes:
+  db_data:
