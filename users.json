@@ -1,35 +1,9 @@
-{}{
-  "users": {
-    "123456789": {
-      "username": "john_doe",
-      "first_name": "John",
-      "last_name": "Doe",
-      "join_date": "2023-11-15T10:30:00Z",
-      "referral_count": 5,
-      "referred_by": null,
-      "balance": 100,
-      "transactions": [
-        {
-          "date": "2023-11-15T10:30:00Z",
-          "amount": 50,
-          "type": "signup_bonus"
-        },
-        {
-          "date": "2023-11-16T14:45:00Z",
-          "amount": 50,
-          "type": "referral_bonus",
-          "referred_user": 987654321
-        }
-      ]
-    }
-  },
-  "statistics": {
-    "total_users": 1,
-    "total_referrals": 5,
-    "signups_today": 1
-  },
-  "system": {
-    "last_updated": "2023-11-16T15:00:00Z",
-    "version": "1.0"
-  }
+{
+    "users": {},
+    "statistics": {
+        "total_users": 0,
+        "total_referrals": 0,
+        "active_today": 0
+    },
+    "version": "1.0.1"
 }
