@@ -1,35 +1,57 @@
-{}{
-  "users": {
-    "123456789": {
-      "username": "john_doe",
-      "first_name": "John",
-      "last_name": "Doe",
-      "join_date": "2023-11-15T10:30:00Z",
-      "referral_count": 5,
-      "referred_by": null,
-      "balance": 100,
-      "transactions": [
-        {
-          "date": "2023-11-15T10:30:00Z",
-          "amount": 50,
-          "type": "signup_bonus"
+{
+    "name": "arun16522018/referandearn2",
+    "description": "Telegram Referral Bot with Reward System",
+    "type": "project",
+    "license": "MIT",
+    "version": "1.0.0",
+    "require": {
+        "php": "^8.1",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "guzzlehttp/guzzle": "^7.5",
+        "vlucas/phpdotenv": "^5.5",
+        "monolog/monolog": "^2.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "mockery/mockery": "^1.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "ReferandEarn\\": "src/"
         },
-        {
-          "date": "2023-11-16T14:45:00Z",
-          "amount": 50,
-          "type": "referral_bonus",
-          "referred_user": 987654321
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
         }
-      ]
-    }
-  },
-  "statistics": {
-    "total_users": 1,
-    "total_referrals": 5,
-    "signups_today": 1
-  },
-  "system": {
-    "last_updated": "2023-11-16T15:00:00Z",
-    "version": "1.0"
-  }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "deploy": [
+            "composer install --no-dev",
+            "php index.php set-webhook"
+        ],
+        "post-update-cmd": [
+            "chmod 755 storage"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    },
+    "minimum-stability": "stable",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packagist.org"
+        }
+    ]
 }
